@@ -6,10 +6,10 @@ function createKeyboardSet(x,y) {
 	this.y = y;
 
 	var w = Math.round(CANVAS_WIDTH/10);
-	var h = w * 1.6;
+	var h = w * 2;
 
 	var keyBG = new createjs.Shape();
-		keyBG.graphics.beginFill("#330066").drawRect(0,0,CANVAS_WIDTH,h*3);
+		keyBG.graphics.beginFill("#330066").drawRect(0,0,CANVAS_WIDTH,-h*3);
 		keyBG.alpha = 0.6;
 	this.addChild(keyBG);
 
@@ -17,16 +17,15 @@ function createKeyboardSet(x,y) {
 	this.hits = [];
 	for (var i = 0; i < 26; i++) {
 		var dx = 0;
-		var dy = 0;
+		var dy = h * 2;
 
-		var kb = new createHtmlText(0,0);
-			kb.setParam("sans-serif", 30, "#3000ff", "center");
+		var kb = new createjs.Text(KEYBOARD_KEYS[i], "36pt sans-serif", "#ffffff");
+			kb.textAlign = "center";
 			kb.textBaseline = "middle";
-			kb.setText("<b>" + KEYBOARD_KEYS[i] + "</b>");
 		
 		if (i >= 19) {
 			dx = w * 1.5;
-			dy = h * 2;
+			dy = 0;
 		} else if (i >= 10) {
 			dx = w/2;
 			dy = h;
@@ -37,7 +36,7 @@ function createKeyboardSet(x,y) {
 		} else {
 			kb.x = keyboard[i-1].x + w;
 		}
-		kb.y = h/2 + dy;
+		kb.y = -h/2 - dy;
 
 		this.addChild(kb);
 		keyboard.push(kb);
@@ -54,12 +53,12 @@ function createKeyboardSet(x,y) {
 
 	// TODO: HOVERING BOX
 	
-	// this.mousedown = function(i) {
+	this.mousedown = function(i) {
 	// 	keyboard[i].sourceRect = {x:w*2,y:0,width:w,height:h};
-	// }
+	}
 
-	// this.pressup = function(i) {
+	this.pressup = function(i) {
 	// 	keyboard[i].sourceRect = {x:0,y:0,width:w,height:h};
-	// }
+	}
 }
 createKeyboardSet.prototype = new createjs.Container;
