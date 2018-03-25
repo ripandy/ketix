@@ -25,6 +25,8 @@ function createEnemy(x,y,type,speed,word) {
 	this.damage = 0;
 	this.dead = false;
 
+	var recoilDur = 0.3;
+	var elapsedTime = 0.3;
 	var rt;
 	var tPos = new createjs.Point(0,0);
 
@@ -33,18 +35,20 @@ function createEnemy(x,y,type,speed,word) {
 	this.hits = new createjs.Shape();
 	this.hits.graphics.setStrokeStyle("2").beginStroke("#cc3333").beginFill("#969696").drawCircle(0,0,rad);
 	this.hits.graphics.moveTo(0,0).lineTo(0,-rad);
+	this.hits.alpha = 0.6;
 	this.addChild(this.hits);
 
 	// word label
 	var label = new createjs.Text(word, "24pt sans-serif", "#ffffff");
 		label.textAlign = "right";
 		label.textBaseline = "middle";
+		label.alpha = 0.8;
 		
 	var tw = label.getMeasuredWidth() + 20;
 	var th = 40;
 
 	var labelBG = new createjs.Shape();
-		labelBG.graphics.beginFill("#666666").drawRect(-tw,-th/2,tw,th);
+		labelBG.graphics.beginFill("#333333").drawRect(-tw,-th/2,tw,th);
 		labelBG.alpha = 0.6;
 
 		label.x = tw/2-10;
@@ -58,6 +62,12 @@ function createEnemy(x,y,type,speed,word) {
 	this.init = function(x,y,type,speed,word) {
 		this.x = x;
 		this.y = y;
+
+		if (this.type != type) {
+			rad = 30 * (type + 1);
+			this.hits.graphics.clear().setStrokeStyle("2").beginStroke("#cc3333").beginFill("#969696").drawCircle(0,0,rad);
+			this.hits.graphics.moveTo(0,0).lineTo(0,-rad);
+		}
 
 		this.type = type;
 		this.speed = speed * ((type == ENEMY_TYPE.TIER_1 || type == ENEMY_TYPE.TIER_2) ? 0.5 : 1);
@@ -105,17 +115,20 @@ function createEnemy(x,y,type,speed,word) {
 			label.text = "";
 			this.visible = false;
 		}
+		elapsedTime = 0;
+
 	}
 
 	this.updateSet = function(interval) {
+		elapsedTime += interval;
 		var dx = this.speed * Math.cos(rt) * interval;
 		var dy = this.speed * Math.sin(rt) * interval;
 		if (rt < 0) {
 			dx *= -1;
 			dy *= -1;
 		}
-		this.x += dx;
-		this.y += dy;
+		this.x += dx * (elapsedTime < recoilDur ? -0.4 : 1);
+		this.y += dy * (elapsedTime < recoilDur ? -0.4 : 1);
 	}
 }
 createEnemy.prototype = new createjs.Container;

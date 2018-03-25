@@ -1,10 +1,10 @@
 var CANVAS_WIDTH = 720;
 var CANVAS_HEIGHT = 1280;
 var G_CONTEXT;
-var images;
+// var images;
 
 function ketix(){
-	var canvas,stage,ctx;//,images,ctx;
+	var canvas,stage,images,ctx;
 	var canvasWidth = CANVAS_WIDTH;
     var canvasHeight = CANVAS_HEIGHT;
 	var xScale=1;
@@ -41,27 +41,37 @@ function ketix(){
 		container = document.getElementById(containerName);
 		containerSize = size||"default";		
 		
-		var splash = document.createElement("div");
-			container.appendChild(splash);
+		canvas = document.createElement("canvas");
+		canvas.width = canvasWidth;
+		canvas.height = canvasHeight;
+		canvas.style.position = "relative";		
+		container.appendChild(canvas);
 		
+		stage = new createjs.Stage(canvas);
+		stage.enableMouseOver(10);
+		stage.mouseMoveOutside = true;
+		createjs.Touch.enable(stage);
+		
+		ctx = canvas.getContext("2d");
+		G_CONTEXT = ctx;
+		
+		var ltx;
 		if(showSplash){
-			splash.style.position = "absolute";
-			splash.style.width = "100%"
-			splash.style.textAlign = "center"
-			splash.style.fontSize = "xx-large";
-			splash.style.top = "50%";
-			splash.innerHTML = "Loading 0%"
+			ltx = new createjs.Text("Loading 0%", "40pt sans-serif", "#000000");
+			stage.addChild(ltx);
 		}
 		
         images = images||{}; 
 		
 		//----resource library
 		var jsNames = new Array();
-			jsNames.push({name:"lib/createjs-2015.11.26.min.js"});
 			jsNames.push({name:"data/words.json"});
 			jsNames.push({name:"js/utility.js"});
 			jsNames.push({name:"js/sound.js"});
+			jsNames.push({name:"js/mainmenu.js"});
+			jsNames.push({name:"js/gameover.js"});
 			jsNames.push({name:"js/keyboard.js"});
+			jsNames.push({name:"js/hud.js"});
 			jsNames.push({name:"js/player.js"});
 			jsNames.push({name:"js/enemy.js"});
 			jsNames.push({name:"js/bullet.js"});
@@ -96,7 +106,7 @@ function ketix(){
 			totalResource--
 			if(showSplash){
 				var ttl = jsNames.length
-				splash.innerHTML = "Loading "+Math.round((ttl-totalResource)/ttl*100)+"%"
+				ltx.text = "Loading "+Math.round((ttl-totalResource)/ttl*100)+"%"
 			}
 			if (totalResource==0) {
 				loadImage();
@@ -137,10 +147,10 @@ function ketix(){
 		}
 
 		function eventImageLoaded() {
-			totalResource--		
+			totalResource--;		
 			if(showSplash){
 				var ttl = manifest.length
-				splash.innerHTML = "Loading "+Math.round((ttl-totalResource)/ttl*100)+"%"
+				ltx.text = "Loading "+Math.round((ttl-totalResource)/ttl*100)+"%"
 			}
 			if(totalResource==0){
 				completeLoad(null);
@@ -148,21 +158,7 @@ function ketix(){
 		}
 		
 		function completeLoad(e){
-			container.removeChild(splash);
-			
-			canvas = document.createElement("canvas");
-			canvas.width = canvasWidth;
-			canvas.height = canvasHeight;
-			canvas.style.position = "relative";		
-			container.appendChild(canvas);
-			
-			stage = new createjs.Stage(canvas);
-			stage.enableMouseOver(10);
-			stage.mouseMoveOutside = true;
-			createjs.Touch.enable(stage);	
-			
-			ctx = canvas.getContext("2d");
-			G_CONTEXT = ctx;
+			stage.removeChild(ltx);
 			
 			setSize([canvas],[ctx]);
 			stage.scaleX = xScale;
@@ -277,18 +273,20 @@ function ketix(){
 		var _words = wordLists;
 
 		var _state = -1;
-		var _isPaused = false;
+		var _paused = false;
 
 		var _keyBuffer = [];
 		var _keyboard;
 
+		var _mainMenu;
+		var _hud;
+		var _gameover;
 		var _player;
 		var _bullets = [];
 		var _enemies = [];
 
-		// var _bc = 0;
-
-		var _level = 1;
+		var _level = 10;
+		var _score = 0;
 
 		// define functions
 
@@ -299,9 +297,38 @@ function ketix(){
 			if (_state != state) {
 				_state = state;
 				if (state == STATE.DEFAULT) {
-					//
+					_mainMenu.visible = true;
+					_hud.visible = false;
+					_keyboard.visible = false;
+					for (var i = 0; i < _enemies.length; i++) {
+						_enemies[i].visible = false;
+					}
+					for (var i = 0; i < _bullets.length; i++) {
+						_bullets[i].visible = false;
+					}
+					_gameover.visible = false;
+				} else if (state == STATE.GAMEPLAY) {
+					_keyBuffer = [];
+					_level = 1;
+					_score = 0;
+					generateLevel();
+
+					_mainMenu.visible = false;
+					_hud.visible = true;
+					_keyboard.visible = true;
+
+					setPaused(false);
+					_gameover.setScore(0);
+				} else if (state == STATE.END) {
+					_gameover.setScore(_score);
+					_gameover.visible = true;
 				}
 			}
+		}
+
+		function setPaused(pause) {
+			_paused = pause;
+			_hud.setPaused(pause);
 		}
 
 		/**
@@ -324,10 +351,10 @@ function ketix(){
 					type = ENEMY_TYPE.TIER_1;
 					t1Count++;
 				}
-				var speed = 10 + Math.floor(_level * 0.8) + Math.floor(randomNum(0, _level, true, true) * 0.5);
+				var speed = 10 + Math.floor(_level * 2) + Math.floor(randomNum(0, _level, true, true));
 
 				var px = randomNum(50,canvasWidth-50,true,true);
-				var py = - 20 - ((20 + randomNum(0,20,true,true)) * (i + 1));
+				var py = -40 - ((randomNum(0,20,true,true)) * (i + 1));
 
 				if (_enemies.length <= i) {
 					var e = new createEnemy(px,py,type,speed,word);
@@ -350,15 +377,31 @@ function ketix(){
 			function to seek for target to attack
 		*/
 		function seekTarget(letter) {
-			var i = 0;
-			var found = false;
-			while (i < _enemies.length && !found) {
-				if (!_enemies[i].dead && _enemies[i].shot == 0 && _enemies[i].damage == 0 && _enemies[i].word[0] == letter) {
-					_player.target = i;
-					found = true;
-				} else {
-					i++;
+			// seek for first letter
+			var tArr = [];
+			for (var i = 0; i < _enemies.length; i++) {
+				if (!_enemies[i].dead
+					&& _enemies[i].shot == 0
+					&& _enemies[i].damage == 0
+					&& _enemies[i].word[0] == letter
+					&& _enemies[i].y > -50) {
+					tArr.push(i);
 				}
+			}
+
+			// seek for target closest to player
+			var maxY = -999;
+			var mdx = -1;
+			for (var i = 0; i < tArr.length; i++) {
+				if (_enemies[tArr[i]].y > maxY) {
+					mdx = i;
+					maxY = _enemies[tArr[i]].y;
+				}
+			}
+			if (mdx != -1) {
+				_player.target = tArr[mdx];
+			} else {
+				_player.target = -1;
 			}
 		}
 
@@ -392,9 +435,8 @@ function ketix(){
 					target.shot++;
 					if (target.shot >= target.word.length) {
 						_player.target = -1;
+						console.log("here!");
 					}
-				} else {
-					console.log("MISSED! ");
 				}
 			}
 		}
@@ -402,6 +444,7 @@ function ketix(){
 		function enemyHit(bdx, edx) {
 			_enemies[edx].damaged();
 			_bullets[bdx].collided();
+			_score += _level;
 		}
 
 		/**
@@ -436,16 +479,21 @@ function ketix(){
 		// objects initiations
 		var bg = new createjs.Bitmap(images.bg);
 
-		_player = new createPlayer(canvasWidth/2, 800);
+		_player = new createPlayer(canvasWidth/2, 800, images);
 
 		_keyboard = new createKeyboardSet(0,CANVAS_HEIGHT);
 
-        // var benarSound = new classSuara("Benar");
+		_hud = new createHUD(0,0);
+		_mainMenu = new createMainMenu(0,0);
+		_gameover = new createGameOver(0,0);
         
 		// add objects to stage
 		stage.addChild(bg);
 		stage.addChild(_player);
+		stage.addChild(_hud);
 		stage.addChild(_keyboard);
+		stage.addChild(_mainMenu);
+		stage.addChild(_gameover);
 
 		// event handler
 		window.addEventListener('keydown', function(e) {
@@ -454,43 +502,56 @@ function ketix(){
 				|| (code >= 97 && code <= 122)) {
 				var letter = String.fromCharCode(code).toLowerCase();
 				_keyBuffer.push(letter);
-				// attackSequence(letter);
 			}
 		});
 
 		function keyboardMouseDown(i) {
 			return function(e) {
 				_keyboard.mousedown(i);
-				_keyTO = 0;
 				update = true;
 			}
 		}
 
 		function keyboardClick(i) {
 			return function(e) {
-				// klikSound.play();
-				// if (!_soundLoaded) {
-				// 	benarSound.fakeplay();
-				// 	_soundLoaded = true;
-				// }
 				var letter = KEYBOARD_KEYS[i].toLowerCase();
-				// attackSequence(letter);
 				_keyBuffer.push(letter);
 				update = true;
 			}
 		}
 
 		for (var i = 0; i < _keyboard.hits.length; i++) {
-			// _keyboard.hits[i].on("mouseover", keyboardMouseOver(i));
-			// _keyboard.hits[i].on("mouseout", keyboardMouseOut(i));
 			_keyboard.hits[i].on("mousedown", keyboardMouseDown(i));
-			// _keyboard.hits[i].on("pressup", keyboardPressUp(i));
 			_keyboard.hits[i].on("click", keyboardClick(i));
 		}
 
+		_mainMenu.pHit.on("click", function(e) {
+			setState(STATE.GAMEPLAY);
+			update = true;
+		});
+
+		_hud.pauseBtn.on("click", function(e) {
+			setPaused(!_paused);
+			update = true;
+		});
+
+		_hud.rHit.on("click", function(e) {
+			setPaused(false);
+			update = true;
+		});
+
+		_hud.mHit.on("click", function(e) {
+			setState(STATE.DEFAULT);
+			update = true;
+		});
+
+		_gameover.hit.on("click", function(e) {
+			setState(STATE.DEFAULT);
+			update = true;
+		});
+
 		// init and setup
     	setState(STATE.DEFAULT);
-		generateLevel();
 
 		// start the game loop
 		var startTime = new Date().getTime();
@@ -506,39 +567,48 @@ function ketix(){
 					var t = (new Date().getTime()-startTime)/1000;
 					startTime = new Date().getTime();
 
-					// update attack sequence
-					if (_keyBuffer.length > 0) {
-						var letter = _keyBuffer.shift();
-						attackSequence(letter);
-					}
+					if (_state == STATE.GAMEPLAY && !_paused) {
+						// update attack sequence
+						if (_keyBuffer.length > 0) {
+							var letter = _keyBuffer.shift();
+							attackSequence(letter);
+						}
 
-					// update player
-					_player.updateSet(t);
+						// update player
+						_player.updateSet(t);
 
-					// update enemies
-					for (var i = 0; i < _enemies.length; i++) {
-						_enemies[i].updateSet(t);
-					}
+						// update enemies
+						for (var i = 0; i < _enemies.length; i++) {
+							_enemies[i].updateSet(t);
 
-					// update bullets
-					for (var i = 0; i < _bullets.length; i++) {
-						var b = _bullets[i];
-						b.updateSet(t);
-
-						if (b.target != -1) {
-							var e = _enemies[b.target];
-							var p = b.hits.localToLocal(0, 0, e.hits);
-							if (e.hits.hitTest(p.x, p.y)) {
-								enemyHit(i,b.target);
+							var p = _player.hits.localToLocal(0,0,_enemies[i].hits);
+							if (_enemies[i].hits.hitTest(p.x,p.y)
+								// && !_enemies[i].dead
+								&& _enemies[i].visible) {
+								setState(STATE.END);
 							}
 						}
-					}
 
-					// check level clear, if clear advance to the next level
-					if (isLevelCleared()) {
-						console.log("LEVEL-" + _level + " CLEARED! TO NEXT LEVEL!");
-						_level++;
-						generateLevel();
+						// update bullets
+						for (var i = 0; i < _bullets.length; i++) {
+							var b = _bullets[i];
+							b.updateSet(t);
+
+							if (b.target != -1) {
+								var e = _enemies[b.target];
+								var p = e.hits.localToLocal(0, 0, b.hits);
+								if (b.hits.hitTest(p.x, p.y)) {
+									enemyHit(i,b.target);
+								}
+							}
+						}
+
+						// check level clear, if clear advance to the next level
+						if (isLevelCleared()) {
+							console.log("LEVEL-" + _level + " CLEARED! SCORE: " + _score);
+							_level++;
+							generateLevel();
+						}
 					}
 				}
 				

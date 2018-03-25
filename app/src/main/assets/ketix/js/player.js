@@ -1,7 +1,7 @@
 /**
 	Define the player class. The player classes can shoot bullets!
 */
-function createPlayer(x,y) {
+function createPlayer(x,y,images) {
 	createjs.Container.call(this);
 
 	// define attributes
@@ -18,13 +18,13 @@ function createPlayer(x,y) {
 	this.hits = new createjs.Shape();
 	this.hits.graphics.setStrokeStyle("2").beginStroke("#ffffff").beginFill("#8642CE").drawCircle(0,0,30);
 	this.hits.graphics.moveTo(0,0).lineTo(0,-30);
-	this.hits.alpha = 0.2;
+	this.hits.alpha = 0.6;
 	this.addChild(this.hits);
 
-	var body = new createjs.Bitmap(images.bebek);
-		body.regX = body.getBounds().width/2;
-		body.regY = body.getBounds().height/2;
-	this.addChild(body);
+	// var body = new createjs.Bitmap(images.bebek);
+	// 	body.regX = body.getBounds().width/2;
+	// 	body.regY = body.getBounds().height/2;
+	// this.addChild(body);
 
 	/**
 		Use this to attack enemy.
