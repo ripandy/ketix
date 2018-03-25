@@ -37,7 +37,6 @@ function createPlayer(x,y,images) {
 		tgtRot = rot + (rot < 0 ? 90 : -90);
 		curRot = this.rotation;
 		elapsedTime = 0;
-		// console.log(atan + ", " + rot + ", " + dx + ", " + dy + ", " + this.x + ", " + this.y + ", " + tgtx + ", " + tgty);
 	}
 
 	this.updateSet = function(interval) {

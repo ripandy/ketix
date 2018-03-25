@@ -1,7 +1,6 @@
 var CANVAS_WIDTH = 720;
 var CANVAS_HEIGHT = 1280;
 var G_CONTEXT;
-// var images;
 
 function ketix(){
 	var canvas,stage,images,ctx;
@@ -76,11 +75,11 @@ function ketix(){
 			jsNames.push({name:"js/enemy.js"});
 			jsNames.push({name:"js/bullet.js"});
 		//--resource image and sound
-        var manifest = [
+		var manifest = [
         	{src:"images/bg.png", id:"bg"},
         	{src:"images/bebek.png", id:"bebek"},
         ];
-		
+        
 		var totalResource = jsNames.length;
 		if(jsNames.length==0){
 			loadImage();
@@ -117,7 +116,7 @@ function ketix(){
 		
 		function loadImage(){
 			totalResource = manifest.length;
-			var arr = manifest
+			var arr = manifest;
 			if(arr.length>0){
 				for(var i=0;i<arr.length;i++){
 					var src = arr[i].src;
@@ -126,7 +125,7 @@ function ketix(){
 					var ext = src.substr(el+1,src.length);
 					switch(ext){
 						case"jpeg":case"jpg":case"gif":case"png":case"webp":case"bmp":
-							var gmbr = new Image();		
+							var gmbr = new Image();
 							gmbr.addEventListener("load",eventImageLoaded, false);
 							gmbr.src = src;
 							images[id] = gmbr;
@@ -365,8 +364,6 @@ function ketix(){
 					_enemies[i].init(px,py,type,speed,word);
 				}
 				_enemies[i].setTargetPos(_player.x, _player.y);
-
-				console.log("(" + type + ")" + word);
 			}
 
 			_player.target = -1;
@@ -435,7 +432,6 @@ function ketix(){
 					target.shot++;
 					if (target.shot >= target.word.length) {
 						_player.target = -1;
-						console.log("here!");
 					}
 				}
 			}
@@ -479,6 +475,16 @@ function ketix(){
 		// objects initiations
 		var bg = new createjs.Bitmap(images.bg);
 
+		// precreate enemies and bullets
+		for (var i = 0; i < 10; i++) {
+			var e = new createEnemy(0,0,ENEMY_TYPE.BASIC,10,"hello");
+				e.visible = false;
+			_enemies.push(e);
+			var b = new createBullet(0, 0);
+				b.visible = false;
+			_bullets.push(b);
+		}
+
 		_player = new createPlayer(canvasWidth/2, 800, images);
 
 		_keyboard = new createKeyboardSet(0,CANVAS_HEIGHT);
@@ -489,6 +495,14 @@ function ketix(){
         
 		// add objects to stage
 		stage.addChild(bg);
+		for (var i = 0; i < 10; i++) {
+			stage.addChild(_enemies[i]);
+			stage.setChildIndex(_enemies[i],1);
+		}
+		for (var i = 0; i < 10; i++) {
+			stage.addChild(_bullets[i]);
+			stage.setChildIndex(_bullets[i],1);
+		}
 		stage.addChild(_player);
 		stage.addChild(_hud);
 		stage.addChild(_keyboard);
@@ -583,7 +597,7 @@ function ketix(){
 
 							var p = _player.hits.localToLocal(0,0,_enemies[i].hits);
 							if (_enemies[i].hits.hitTest(p.x,p.y)
-								// && !_enemies[i].dead
+								&& !_enemies[i].dead
 								&& _enemies[i].visible) {
 								setState(STATE.END);
 							}
@@ -605,7 +619,6 @@ function ketix(){
 
 						// check level clear, if clear advance to the next level
 						if (isLevelCleared()) {
-							console.log("LEVEL-" + _level + " CLEARED! SCORE: " + _score);
 							_level++;
 							generateLevel();
 						}

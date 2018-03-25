@@ -114,8 +114,8 @@ function toRadians(angle) {
 	return angle * (Math.PI / 180);
 }
 
-// collision detector
-// function isCollide(b1,b2) {
-//     if (b1.x >= b2.x + b2.width || b1.x + b1.width <= b2.x || b1.y >= b2.y + b2.height || b1.y + b1.height <= b2.y ) return false;
-//     return true;
-// }
+// collision detector square / box
+function isCollide(b1,b2) {
+    if (b1.x >= b2.x + b2.width || b1.x + b1.width <= b2.x || b1.y >= b2.y + b2.height || b1.y + b1.height <= b2.y ) return false;
+    return true;
+}
